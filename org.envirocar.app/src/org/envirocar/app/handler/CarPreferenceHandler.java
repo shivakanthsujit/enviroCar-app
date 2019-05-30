@@ -53,6 +53,9 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.reactivex.Maybe;
+import io.reactivex.MaybeObserver;
+import io.reactivex.MaybeSource;
 import rx.Observable;
 import rx.Subscriber;
 
@@ -188,14 +191,14 @@ public class CarPreferenceHandler {
 
     private Observable<Track> updateCarIDsOfTracksObservable(String oldID, Car car) {
         return mEnviroCarDB.getAllTracksByCar(oldID, true)
-                .first()
-                .flatMap(tracks -> Observable.from(tracks))
+                .firstElement()
+                .flatMap(tracks -> MaybeObserver::onComplete)
                 .map(track -> {
                     LOG.info("Track has been updated! -> [" + track.toString() + "]");
-                    track.setCar(car);
+                    (Track)track.setCar(car);
                     return track;
                 })
-                .concatMap(track -> mEnviroCarDB.updateTrackObservable(track));
+                .concatMap(track -> mEnviroCarDB.updateTrackFlowable(track));
     }
 
     /**

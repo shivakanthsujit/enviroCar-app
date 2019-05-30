@@ -22,13 +22,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
-import com.f2prateek.rx.preferences.RxSharedPreferences;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.google.common.base.Preconditions;
 
 import org.envirocar.core.entity.Car;
 import org.envirocar.core.utils.CarUtils;
 
-import rx.Observable;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
 
 import static org.envirocar.app.notifications.NotificationHandler.context;
 
@@ -55,10 +56,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getInt(PREF_TRACK_CUT_DURATION, DEFAULT_TRACK_TRIM_DURATION);
     }
 
-    public static Observable<Integer> getTrackTrimDurationObservable(final Context context) {
+    public static Flowable<Integer> getTrackTrimDurationFlowable(final Context context) {
         return RxSharedPreferences.create(getSharedPreferences(context))
                 .getInteger(PREF_TRACK_CUT_DURATION, DEFAULT_TRACK_TRIM_DURATION)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static int getPreviousViewTypeGeneralRecordingScreen(Context context){
@@ -122,10 +124,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getInt(PREF_PREV_REC_TYPE, 1);
     }
 
-    public static Observable<Integer> getPreviouslySelectedRecordingTypeObservable(final Context context) {
+    public static Flowable<Integer> getPreviouslySelectedRecordingTypeFlowable(final Context context) {
         return RxSharedPreferences.create(getSharedPreferences(context))
                 .getInteger(PREF_PREV_REC_TYPE, 1)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static void setPreviouslySelectedRecordingType(Context context,int index){
@@ -137,10 +140,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(PREF_BLUETOOTH_AUTOCONNECT, DEFAULT_BLUETOOTH_AUTOCONNECT);
     }
 
-    public static Observable<Boolean> getAutoconnectObservable(final Context context) {
+    public static Flowable<Boolean> getAutoconnectFlowable(final Context context) {
         return RxSharedPreferences.create(getSharedPreferences(context))
                 .getBoolean(PREF_BLUETOOTH_AUTOCONNECT, DEFAULT_BLUETOOTH_AUTOCONNECT)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static boolean isBackgroundHandlerEnabled(Context context){
@@ -148,10 +152,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(PREF_BLUETOOTH_SERVICE_AUTOSTART, DEFAULT_BLUETOOTH_SERVICE_AUTOSTART);
     }
 
-    public static Observable<Boolean> getBackgroundHandlerEnabledObservable(final Context context){
+    public static Flowable<Boolean> getBackgroundHandlerEnabledFlowable(final Context context){
         return RxSharedPreferences.create(getSharedPreferences(context))
                 .getBoolean(PREF_BLUETOOTH_SERVICE_AUTOSTART, DEFAULT_BLUETOOTH_SERVICE_AUTOSTART)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static int getDiscoveryInterval(Context context) {
@@ -159,10 +164,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getInt(PREF_BLUETOOTH_DISCOVERY_INTERVAL, DEFAULT_BLUETOOTH_DISCOVERY_INTERVAL);
     }
 
-    public static Observable<Integer> getDiscoveryIntervalObservable(Context context) {
+    public static Flowable<Integer> getDiscoveryIntervalFlowable(Context context) {
         return getRxSharedPreferences(context)
                 .getInteger(PREF_BLUETOOTH_DISCOVERY_INTERVAL, DEFAULT_BLUETOOTH_DISCOVERY_INTERVAL)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static boolean isDisplayStaysActive(Context context) {
@@ -170,10 +176,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(DISPLAY_STAYS_ACTIV, DEFAULT_BLUETOOTH_AUTOCONNECT);
     }
 
-    public static Observable<Boolean> getDisplayStaysActiveObservable(Context context) {
+    public static Flowable<Boolean> getDisplayStaysActiveFlowable(Context context) {
         return getRxSharedPreferences(context)
                 .getBoolean(DISPLAY_STAYS_ACTIV, DEFAULT_DISPLAY_STAYS_ACTIVE)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static boolean isTextToSpeechEnabled(Context context) {
@@ -181,10 +188,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(PREF_TEXT_TO_SPEECH, DEFAULT_TEXT_TO_SPEECH);
     }
 
-    public static Observable<Boolean> getTextToSpeechObservable(Context context) {
+    public static Flowable<Boolean> getTextToSpeechFlowable(Context context) {
         return getRxSharedPreferences(context)
                 .getBoolean(PREF_TEXT_TO_SPEECH, DEFAULT_TEXT_TO_SPEECH)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     private static RxSharedPreferences getRxSharedPreferences(Context context) {
@@ -196,10 +204,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getString(SAMPLING_RATE, "5"));
     }
 
-    public static Observable<Long> getRxSharedSamplingRate(Context context) {
+    public static Flowable<Long> getRxSharedSamplingRate(Context context) {
         return getRxSharedPreferences(context)
                 .getString(SAMPLING_RATE, "5")
-                .asObservable().map(s -> Long.parseLong(s));
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER).map(s -> Long.parseLong(s));
     }
 
     public static boolean isObfuscationEnabled(Context context) {
@@ -207,10 +216,11 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(PreferenceConstants.OBFUSCATE_POSITION, false);
     }
 
-    public static Observable<Boolean> getObfuscationObservable(Context context){
+    public static Flowable<Boolean> getObfuscationFlowable(Context context){
         return getRxSharedPreferences(context)
                 .getBoolean(OBFUSCATE_POSITION, false)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
     public static SharedPreferences getSharedPreferences(Context context) {
@@ -223,16 +233,18 @@ public class PreferencesHandler implements PreferenceConstants {
                 .getBoolean(PREF_ENABLE_DIESE_CONSUMPTION, false);
     }
 
-    public static Observable<Boolean> getDieselConsumptionObservable(Context context){
+    public static Flowable<Boolean> getDieselConsumptionFlowable(Context context){
         return getRxSharedPreferences(context)
                 .getBoolean(PREF_ENABLE_DIESE_CONSUMPTION, false)
-                .asObservable();
+                .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER);
     }
 
-    public static Observable<Car> getSelectedCarObsevable(){
+    public static Flowable<Car> getSelectedCarObsevable(){
         return getRxSharedPreferences(context)
                 .getString(PREFERENCE_TAG_CAR, null)
                 .asObservable()
+                .toFlowable(BackpressureStrategy.BUFFER)
                 .map(s -> s != null ? CarUtils.instantiateCar(s) : null);
     }
 }

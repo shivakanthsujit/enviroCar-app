@@ -24,10 +24,10 @@ dependencies {
     implementation rootProject.ext.findBugs
 
     // RxJava for Android
-    implementation rootProject.ext.rxAndroid
-    implementation rootProject.ext.rxJava
-    implementation rootProject.ext.rxPreferences
-    implementation rootProject.ext.rxBinding
+    implementation rootProject.ext.rxAndroid2
+    implementation rootProject.ext.rxJava2
+    implementation rootProject.ext.rxPreferences2
+    implementation rootProject.ext.rxBinding2
 
     // other third party libraries
     implementation rootProject.ext.acra

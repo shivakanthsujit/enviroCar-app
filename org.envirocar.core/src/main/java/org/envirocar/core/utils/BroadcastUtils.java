@@ -23,11 +23,24 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 
-import rx.Observable;
+import org.envirocar.core.entity.Track;
+import org.envirocar.core.exception.DataRetrievalFailureException;
+import org.envirocar.core.exception.NotConnectedException;
+import org.envirocar.core.exception.UnauthorizedException;
+import org.reactivestreams.Subscription;
+
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+
+import io.reactivex.functions.Action;
 import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action0;
+//import rx.Subscription;
+import rx.exceptions.OnErrorThrowable;
 import rx.subscriptions.Subscriptions;
+//import rx.functions.Action0;
+//import rx.subscriptions.Subscriptions;
 
 /**
  * TODO JavaDoc
@@ -36,35 +49,29 @@ import rx.subscriptions.Subscriptions;
  */
 public class BroadcastUtils {
 
-    public static final Observable<Intent> createBroadcastObservable(
+    public static final Flowable<Intent> createBroadcastFlowable(
             final Context context, final IntentFilter intentFilter) {
-        return Observable.create(new Observable.OnSubscribe<Intent>() {
+        return Flowable.create(new FlowableOnSubscribe<Intent>() {
             @Override
-            public void call(Subscriber<? super Intent> subscriber) {
-                // Start it
-                subscriber.onStart();
+            public void subscribe(FlowableEmitter<Intent> emitter) throws Exception {
 
-                // Broadcast receiver for the specific intentfilter
                 final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
                     @Override
                     public void onReceive(Context context, Intent intent) {
-                        subscriber.onNext(intent);
+                        emitter.onNext(intent);
                     }
                 };
-
-                // create a new subscription that should get called when this observable gets
-                // unsubscribed.
-                final Subscription subscription = Subscriptions.create(new Action0() {
+                //final Subscription subscription =
+                final Subscription subscription = Flowable.create(new Action() {
                     @Override
-                    public void call() {
+                    public void run() {
                         context.unregisterReceiver(broadcastReceiver);
                     }
                 });
-                subscriber.add(subscription);
-
-                // Register the created broadcastreceiver
+                .add
+                emitter.add(subscription);
                 context.registerReceiver(broadcastReceiver, intentFilter, null, null);
             }
-        });
+        }, BackpressureStrategy.BUFFER);
     }
 }

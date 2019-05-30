@@ -78,9 +78,9 @@ ext {
     sqlBrite = 'com.squareup.sqlbrite:sqlbrite:1.1.2'
 
     //RxJava2 dependencies
-    rxJava2 = 'io.reactivex:rxjava2:2.2.8'
+    rxJava2 = 'io.reactivex.rxjava2:rxjava:2.2.8'
     rxAndroid2 = 'io.reactivex.rxjava2:rxandroid:2.1.1'
-    rxPreferences = 'com.f2prateek.rx.preferences:rx-preferences:1.0.1'
+    rxPreferences2 = 'com.f2prateek.rx.preferences2:rx-preferences:2.0.0'
     rxBinding2 = 'com.jakewharton.rxbinding3:rxbinding:3.0.0-alpha2'
     retrofit2RxJava2 = 'com.squareup.retrofit2:adapter-rxjava:2.5.0'
 

@@ -41,9 +41,9 @@ import java.io.IOException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import rx.Observable;
+import io.reactivex.Flowable;
+import io.reactivex.functions.Function;
 import rx.exceptions.OnErrorThrowable;
-import rx.functions.Func1;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -133,10 +133,10 @@ public class UserHandler implements UserManager {
         return prefs.contains(USERNAME) && prefs.contains(TOKEN);
     }
 
-    public <T> Func1<T, T> getIsLoggedIn() {
-        return new Func1<T, T>() {
+    public <T> Function<T, T> getIsLoggedIn() {
+        return new Function<T, T>() {
             @Override
-            public T call(T t) {
+            public T apply(T t) {
                 if (isLoggedIn())
                     return t;
                 else
@@ -219,8 +219,8 @@ public class UserHandler implements UserManager {
     }
 
 
-    public Observable<Bitmap> getGravatarBitmapObservable() {
-        return Observable.just(true)
+    public Flowable<Bitmap> getGravatarBitmapFlowable() {
+        return Flowable.just(true)
                 .map(aBoolean -> {
                     if (isLoggedIn()) {
                         // If the gravatar bitmap already exist, then return it.

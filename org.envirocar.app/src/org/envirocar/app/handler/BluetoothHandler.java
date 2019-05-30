@@ -40,6 +40,7 @@ import org.envirocar.core.util.InjectApplicationScope;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.core.utils.BroadcastUtils;
 import org.envirocar.core.utils.ServiceUtils;
+import org.reactivestreams.Subscriber;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -50,11 +51,11 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.schedulers.Schedulers;
+//import rx.Subscriber;
 import rx.Subscription;
-import rx.schedulers.Schedulers;
 
 /**
  * @author dewall
@@ -302,24 +303,24 @@ public class BluetoothHandler {
     }
 
     /**
-     * Returns an Observable that will execute the bluetooth discovery for a specific input
+     * Returns an Flowable that will execute the bluetooth discovery for a specific input
      * device.
      *
      * @param inputDevice the Bluetooth device to search for.
-     * @return an observable that searches for a specific device.
+     * @return an Flowable that searches for a specific device.
      */
-    public Observable<BluetoothDevice> startBluetoothDiscoveryForSingleDevice(
+    public Flowable<BluetoothDevice> startBluetoothDiscoveryForSingleDevice(
             BluetoothDevice inputDevice) {
         return startBluetoothDiscovery()
                 .filter(device1 -> inputDevice.getAddress().equals(device1.getAddress()));
     }
 
     /**
-     * Returns an Observable that will execute the search for unpaired devices.
+     * Returns an Flowable that will execute the search for unpaired devices.
      *
-     * @return an observable that executes the search for unpaired devices.
+     * @return an Flowable that executes the search for unpaired devices.
      */
-    public Observable<BluetoothDevice> startBluetoothDiscoveryOnlyUnpaired() {
+    public Flowable<BluetoothDevice> startBluetoothDiscoveryOnlyUnpaired() {
         return startBluetoothDiscovery()
                 .filter(device -> device.getBondState() != BluetoothDevice.BOND_BONDED);
     }
@@ -327,8 +328,8 @@ public class BluetoothHandler {
     /**
      * @return
      */
-    public Observable<BluetoothDevice> startBluetoothDiscovery() {
-        return Observable.create(subscriber -> {
+    public Flowable<BluetoothDevice> startBluetoothDiscovery() {
+        return Flowable.create(subscriber -> {
             LOGGER.info("startBluetoothDiscovery(): subscriber call");
 
             // If the device is already discovering, cancel the discovery before starting.
@@ -357,13 +358,13 @@ public class BluetoothHandler {
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 
             mDiscoverySubscription = BroadcastUtils
-                    .createBroadcastObservable(context, filter)
+                    .createBroadcastFlowable(context, filter)
                     .subscribe(new Subscriber<Intent>() {
 
                         @Override
-                        public void onCompleted() {
+                        public void onComplete() {
                             LOGGER.info("onCompleted()");
-                            subscriber.onCompleted();
+                            subscriber.onComplete();
                         }
 
                         @Override
@@ -393,7 +394,7 @@ public class BluetoothHandler {
 
                             // If the discovery process has been finished.
                             else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
-                                subscriber.onCompleted();
+                                subscriber.onComplete();
                                 mWorker.schedule(() -> {
                                     if (!isUnsubscribed()) {
                                         unsubscribe();

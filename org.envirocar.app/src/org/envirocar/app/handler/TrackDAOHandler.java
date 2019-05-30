@@ -33,16 +33,21 @@ import org.envirocar.core.logging.Logger;
 import org.envirocar.core.util.TrackMetadata;
 import org.envirocar.core.util.Util;
 import org.envirocar.storage.EnviroCarDB;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import rx.Observable;
-import rx.Subscriber;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.schedulers.Schedulers;
+
 import rx.exceptions.OnErrorThrowable;
-import rx.schedulers.Schedulers;
+
 
 /**
  * TODO JavaDoc
@@ -67,8 +72,8 @@ public class TrackDAOHandler {
         this.daoProvider = daoProvider;
     }
 
-    public Observable<Track> deleteLocalTrackObservable(Track track) {
-        return enviroCarDB.deleteTrackObservable(track);
+    public Flowable<Track> deleteLocalTrackFlowable(Track track) {
+        return enviroCarDB.deleteTrackFlowable(track);
     }
 
     /**
@@ -81,8 +86,7 @@ public class TrackDAOHandler {
         return deleteLocalTrack(
                 enviroCarDB.getTrack(trackID)
                         .subscribeOn(Schedulers.io())
-                        .toBlocking()
-                        .first());
+                        .blockingFirst());
     }
 
     /**
@@ -142,18 +146,17 @@ public class TrackDAOHandler {
         LOGGER.info("deleteAllRemoteTracksLocally()");
         enviroCarDB.deleteAllRemoteTracks()
                 .subscribeOn(Schedulers.io())
-                .toBlocking()
-                .first();
+                .blockingFirst();
         return true;
     }
 
-    public Observable<Integer> getLocalTrackCount(){
+    public Flowable<Integer> getLocalTrackCount(){
         return enviroCarDB.getAllLocalTracks(true)
                 .map(tracks -> tracks.size());
     }
 
-    public Observable<TrackMetadata> updateTrackMetadataObservable(Track track) {
-        return Observable.just(track)
+    public Flowable<TrackMetadata> updateTrackMetadataFlowable(Track track) {
+        return Flowable.just(track)
                 .map(track1 -> new TrackMetadata(Util.getVersionString(context),
                         userManager.getUser().getTermsOfUseVersion()))
                 .flatMap(trackMetadata -> updateTrackMetadata(track
@@ -161,7 +164,7 @@ public class TrackDAOHandler {
                         trackMetadata));
     }
 
-    public Observable<TrackMetadata> updateTrackMetadata(
+    public Flowable<TrackMetadata> updateTrackMetadata(
             Track.TrackId trackId, TrackMetadata trackMetadata) {
         return enviroCarDB.getTrack(trackId, true)
                 .map(track -> {
@@ -171,13 +174,13 @@ public class TrackDAOHandler {
                 });
     }
 
-    public Observable<Track> fetchRemoteTrackObservable(Track remoteTrack) {
-        return Observable.create(new Observable.OnSubscribe<Track>() {
+    public Flowable<Track> fetchRemoteTrackFlowable(Track remoteTrack) {
+        return Flowable.create(new FlowableOnSubscribe<Track>() {
             @Override
-            public void call(Subscriber<? super Track> subscriber) {
+            public void subscribe(FlowableEmitter<Track> emitter) throws Exception {
                 try {
-                    subscriber.onNext(fetchRemoteTrack(remoteTrack));
-                    subscriber.onCompleted();
+                    emitter.onNext(fetchRemoteTrack(remoteTrack));
+                    emitter.onComplete();
                 } catch (NotConnectedException e) {
                     throw OnErrorThrowable.from(e);
                 } catch (DataRetrievalFailureException e) {
@@ -186,7 +189,7 @@ public class TrackDAOHandler {
                     throw OnErrorThrowable.from(e);
                 }
             }
-        });
+        }, BackpressureStrategy.BUFFER);
     }
 
     public Track fetchRemoteTrack(Track remoteTrack) throws NotConnectedException,

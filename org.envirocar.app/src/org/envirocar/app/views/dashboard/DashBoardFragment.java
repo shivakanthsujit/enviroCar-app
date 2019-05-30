@@ -83,6 +83,7 @@ import org.envirocar.core.logging.Logger;
 import org.envirocar.core.util.InjectionActivityScope;
 import org.envirocar.obd.events.TrackRecordingServiceStateChangedEvent;
 import org.envirocar.obd.service.BluetoothServiceState;
+import org.reactivestreams.Subscriber;
 
 import javax.inject.Inject;
 
@@ -90,10 +91,10 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import info.hoang8f.android.segmented.SegmentedGroup;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.ResourceSubscriber;
 
 import static android.view.View.GONE;
 
@@ -627,7 +628,7 @@ public class DashBoardFragment extends BaseInjectorFragment {
                     });
 
             // Update the Gravatar image.
-            mUserManager.getGravatarBitmapObservable()
+            mUserManager.getGravatarBitmapFlowable()
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(bitmap -> {
@@ -998,7 +999,7 @@ public class DashBoardFragment extends BaseInjectorFragment {
         final BluetoothDevice device = mBluetoothHandler.getSelectedBluetoothDevice();
 
         mBluetoothHandler.startBluetoothDiscoveryForSingleDevice(device)
-                .subscribe(new Subscriber<BluetoothDevice>() {
+                .subscribe(new ResourceSubscriber<BluetoothDevice>() {
                     private boolean found = false;
                     private View contentView;
                     private TextView textView;
@@ -1036,7 +1037,7 @@ public class DashBoardFragment extends BaseInjectorFragment {
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         if (!found) {
                             mConnectingDialog.dismiss();
                             mConnectingDialog = DialogUtils.createDefaultDialogBuilder(getContext(),

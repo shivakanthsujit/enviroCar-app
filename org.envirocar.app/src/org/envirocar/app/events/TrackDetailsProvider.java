@@ -33,8 +33,10 @@ import org.envirocar.core.events.NewMeasurementEvent;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.obd.service.BluetoothServiceState;
 
-import rx.Scheduler;
-import rx.android.schedulers.AndroidSchedulers;
+
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+
 
 /**
  * @author dewall

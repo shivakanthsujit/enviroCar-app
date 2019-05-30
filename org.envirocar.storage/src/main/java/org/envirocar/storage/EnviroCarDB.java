@@ -26,7 +26,7 @@ import org.envirocar.core.util.TrackMetadata;
 
 import java.util.List;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 /**
  * TODO JavaDoc
@@ -35,44 +35,44 @@ import rx.Observable;
  */
 public interface EnviroCarDB {
 
-    Observable<Track> getTrack(Track.TrackId trackId);
+    Flowable<Track> getTrack(Track.TrackId trackId);
 
-    Observable<Track> getTrack(Track.TrackId trackId, boolean lazy);
+    Flowable<Track> getTrack(Track.TrackId trackId, boolean lazy);
 
     /**
-     * Returns an observable providing all tracks as an {@link List}.
+     * Returns an Flowable providing all tracks as an {@link List}.
      *
-     * @return All tracks as observable
+     * @return All tracks as Flowable
      */
-    Observable<List<Track>> getAllTracks();
+    Flowable<List<Track>> getAllTracks();
 
     /**
-     * Returns an observable providing all tracks as an {@link List}.
+     * Returns an Flowable providing all tracks as an {@link List}.
      *
      * @param lazy indicates whether the measurements should be loaded or not.
-     * @return all tracks as observable.
+     * @return all tracks as Flowable.
      */
-    Observable<List<Track>> getAllTracks(boolean lazy);
+    Flowable<List<Track>> getAllTracks(boolean lazy);
 
-    Observable<List<Track>> getAllTracksByCar(String id, boolean lazy);
+    Flowable<List<Track>> getAllTracksByCar(String id, boolean lazy);
 
-    Observable<List<Track>> getAllLocalTracks();
+    Flowable<List<Track>> getAllLocalTracks();
 
-    Observable<List<Track>> getAllLocalTracks(boolean lazy);
+    Flowable<List<Track>> getAllLocalTracks(boolean lazy);
 
-    Observable<List<Track>> getAllRemoteTracks();
+    Flowable<List<Track>> getAllRemoteTracks();
 
-    Observable<List<Track>> getAllRemoteTracks(boolean lazy);
+    Flowable<List<Track>> getAllRemoteTracks(boolean lazy);
 
-    Observable<Void> clearTables();
+    Flowable<Void> clearTables();
 
     void insertTrack(Track track) throws TrackSerializationException;
 
-    Observable<Track> insertTrackObservable(Track track);
+    Flowable<Track> insertTrackFlowable(Track track);
 
     boolean updateTrack(Track track);
 
-    Observable<Track> updateTrackObservable(Track track);
+    Flowable<Track> updateTrackFlowable(Track track);
 
     boolean updateCarIdOfTracks(String currentId, String newId);
 
@@ -80,29 +80,29 @@ public interface EnviroCarDB {
 
     void deleteTrack(Track track);
 
-    Observable<Track> deleteTrackObservable(Track track);
+    Flowable<Track> deleteTrackFlowable(Track track);
 
-    Observable<Void> deleteAllRemoteTracks();
+    Flowable<Void> deleteAllRemoteTracks();
 
     void insertMeasurement(Measurement measurement) throws MeasurementSerializationException;
 
     void automaticDeleteMeasurements(long time, Track.TrackId trackId);
 
-    Observable<Void> insertMeasurementObservable(Measurement measurement);
+    Flowable<Void> insertMeasurementFlowable(Measurement measurement);
 
     void updateTrackRemoteID(Track track, String remoteID);
 
-    Observable<Void> updateTrackRemoteIDObservable(Track track, String remoteID);
+    Flowable<Void> updateTrackRemoteIDFlowable(Track track, String remoteID);
 
-    Observable<Track> fetchTracks(Observable<List<Track>> track, final boolean lazy);
+    Flowable<Track> fetchTracks(Flowable<List<Track>> track, final boolean lazy);
 
-    Observable<Track> fetchTrack(Observable<Track> track, final boolean lazy);
+    Flowable<Track> fetchTrack(Flowable<Track> track, final boolean lazy);
 
-    Observable<Track> getActiveTrackObservable(boolean lazy);
+    Flowable<Track> getActiveTrackFlowable(boolean lazy);
 
     void updateTrackMetadata(final Track track, final TrackMetadata trackMetadata) throws
             TrackSerializationException;
 
-    Observable<TrackMetadata> updateTrackMetadataObservable(final Track track, final TrackMetadata trackMetadata) throws
+    Flowable<TrackMetadata> updateTrackMetadataFlowable(final Track track, final TrackMetadata trackMetadata) throws
             TrackSerializationException;
 }
