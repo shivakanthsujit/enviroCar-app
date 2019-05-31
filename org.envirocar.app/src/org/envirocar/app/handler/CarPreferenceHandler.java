@@ -53,10 +53,15 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.Maybe;
 import io.reactivex.MaybeObserver;
 import io.reactivex.MaybeSource;
-import rx.Observable;
+import io.reactivex.functions.Function;
+import io.reactivex.internal.operators.maybe.MaybeConcatArrayDelayError;
 import rx.Subscriber;
 
 /**
@@ -118,20 +123,25 @@ public class CarPreferenceHandler {
         }
     }
 
-    public Observable<List<Car>> getAllDeserializedCars() {
-        return Observable.create(new Observable.OnSubscribe<List<Car>>() {
+    public Flowable<List<Car>> getAllDeserializedCars() {
+        return Flowable.create(new FlowableOnSubscribe<List<Car>>() {
             @Override
+            public void subscribe(FlowableEmitter<List<Car>> emitter){
+                //emitter.onStart();
+                emitter.onNext(getDeserialzedCars());
+                emitter.onComplete();
+            }
             public void call(Subscriber<? super List<Car>> subscriber) {
                 subscriber.onStart();
                 subscriber.onNext(getDeserialzedCars());
                 subscriber.onCompleted();
             }
-        });
+        }, BackpressureStrategy.BUFFER);
     }
 
-    public Observable<List<Car>> downloadRemoteCarsOfUser() {
-        return Observable.just(mUserManager.getUser())
-                .flatMap(user -> mDAOProvider.getSensorDAO().getCarsByUserObservable(user))
+    public Flowable<List<Car>> downloadRemoteCarsOfUser() {
+        return Flowable.just(mUserManager.getUser())
+                .flatMap(user -> mDAOProvider.getSensorDAO().getCarsByUserFlowable(user))
                 .map(cars -> {
                     LOG.info(String.format(
                             "Successfully downloaded %s remote cars. Add these to the preferences.",
@@ -144,22 +154,22 @@ public class CarPreferenceHandler {
                 });
     }
 
-    public Observable<Car> assertTemporaryCar(Car car) {
-        return Observable.just(car)
+    public Flowable<Car> assertTemporaryCar(Car car) {
+        return Flowable.just(car)
                 .flatMap(car1 -> {
                     LOG.info("assertTemporaryCar() assert whether car is uploaded or the car " +
                             "needs to be registered.");
                     // If the car is already uploaded, then just return car instance.
                     if (CarUtils.isCarUploaded(car1)) {
                         LOG.info("assertTemporaryCar(): car has already been uploaded");
-                        return Observable.just(car1);
+                        return Flowable.just(car1);
                     }
 
                     // the car is already uploaded before but the car has not the right remote id
                     if (temporaryAlreadyRegisteredCars.containsKey(car1.getId())) {
                         LOG.info("assertTemporaryCar(): car has already been uploaded");
                         car1.setId(temporaryAlreadyRegisteredCars.get(car1.getId()));
-                        return Observable.just(car1);
+                        return Flowable.just(car1);
                     }
 
                     LOG.info("assertTemporaryCar(): car is not uploaded. Trying to register.");
@@ -168,16 +178,16 @@ public class CarPreferenceHandler {
                 });
     }
 
-    private Observable<Car> registerCar(Car car) {
+    private Flowable<Car> registerCar(Car car) {
         LOG.info(String.format("registerCarBeforeUpload(%s)", car.toString()));
         String oldID = car.getId();
         return mDAOProvider.getSensorDAO()
                 // Create a new remote car and update the car remote id.
-                .createCarObservable(car)
+                .createCarFlowable(car)
                 // update all IDs of tracks that have this car as a reference
-                .flatMap(updCar -> updateCarIDsOfTracksObservable(oldID, updCar))
+                .flatMap(updCar -> updateCarIDsOfTracksFlowable(oldID, updCar))
                 // sum all tracks to a list of tracks.
-                .toList()
+                //.toList()
                 // Just set the current car reference to the updated one and return it.
                 .map(tracks -> {
                     LOG.info("kommta hier an?");
@@ -189,13 +199,13 @@ public class CarPreferenceHandler {
                 });
     }
 
-    private Observable<Track> updateCarIDsOfTracksObservable(String oldID, Car car) {
+    private Flowable<Track> updateCarIDsOfTracksFlowable(String oldID, Car car) {
         return mEnviroCarDB.getAllTracksByCar(oldID, true)
-                .firstElement()
-                .flatMap(tracks -> MaybeObserver::onComplete)
+                //.firstElement()
+                .flatMapIterable(tracks -> tracks)
                 .map(track -> {
                     LOG.info("Track has been updated! -> [" + track.toString() + "]");
-                    (Track)track.setCar(car);
+                    track.setCar(car);
                     return track;
                 })
                 .concatMap(track -> mEnviroCarDB.updateTrackFlowable(track));

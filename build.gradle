@@ -81,7 +81,8 @@ ext {
     rxJava2 = 'io.reactivex.rxjava2:rxjava:2.2.8'
     rxAndroid2 = 'io.reactivex.rxjava2:rxandroid:2.1.1'
     rxPreferences2 = 'com.f2prateek.rx.preferences2:rx-preferences:2.0.0'
-    rxBinding2 = 'com.jakewharton.rxbinding3:rxbinding:3.0.0-alpha2'
+    rxBinding2 = 'com.jakewharton.rxbinding2:rxbinding:2.2.0'
+    rxBinding3 = 'com.jakewharton.rxbinding3:rxbinding:3.0.0-alpha2'
     retrofit2RxJava2 = 'com.squareup.retrofit2:adapter-rxjava:2.5.0'
 
     // Google dependencies

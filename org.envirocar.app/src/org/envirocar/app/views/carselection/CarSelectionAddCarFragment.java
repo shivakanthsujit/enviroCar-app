@@ -16,18 +16,21 @@
  * You should have received a copy of the GNU General Public License along
  * with the enviroCar app. If not, see http://www.gnu.org/licenses/.
  */
+
 package org.envirocar.app.views.carselection;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.graphics.Point;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
+
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Pair;
 import android.view.Display;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,8 +42,9 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toolbar;
 
-import com.jakewharton.rxbinding.support.v7.widget.RxToolbar;
+import com.jakewharton.rxbinding2.widget.RxToolbar;
 
 import org.envirocar.app.main.BaseApplicationComponent;
 import org.envirocar.app.R;
@@ -65,13 +69,15 @@ import javax.inject.Inject;
 
 import butterknife.ButterKnife;
 import butterknife.BindView;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.DisposableSubscriber;
 
 /**
  * TODO JavaDoc
@@ -122,8 +128,8 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
     @Inject
     protected CarPreferenceHandler carManager;
 
-    private Subscription sensorsSubscription;
-    private Subscription createCarSubscription;
+    private Disposable sensorsSubscription;
+    private Disposable createCarSubscription;
     private Scheduler.Worker mainThreadWorker = AndroidSchedulers.mainThread().createWorker();
 
     private Set<Car> mCars = new HashSet<>();
@@ -134,6 +140,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
 
     @Nullable
     @Override
+    @TargetApi(22)
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle
             savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
@@ -166,13 +173,15 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         downloadView.setVisibility(View.INVISIBLE);
 
         createCarSubscription = RxToolbar.itemClicks(toolbar)
+
                 .filter(continueWhenFormIsCorrect())
                 .map(createCarFromForm())
                 .filter(continueWhenCarHasCorrectValues())
                 .map(checkCarAlreadyExist())
-                .subscribe(new Subscriber<Car>() {
+                .toFlowable(BackpressureStrategy.BUFFER)
+                .subscribeWith(new DisposableSubscriber<Car>() {
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         LOG.info("onCompleted car");
                     }
 
@@ -198,6 +207,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         return view;
     }
 
+    @TargetApi(22)
     @Override
     public void onResume() {
         LOG.info("onResume()");
@@ -214,11 +224,11 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
     public void onDestroy() {
         LOG.info("onDestroy()");
 
-        if (sensorsSubscription != null && !sensorsSubscription.isUnsubscribed()) {
-            sensorsSubscription.unsubscribe();
+        if (sensorsSubscription != null && !sensorsSubscription.isDisposed()) {
+            sensorsSubscription.dispose();
         }
-        if (createCarSubscription != null && !createCarSubscription.isUnsubscribed()) {
-            createCarSubscription.unsubscribe();
+        if (createCarSubscription != null && !createCarSubscription.isDisposed()) {
+            createCarSubscription.dispose();
         }
 
         super.onDestroy();
@@ -230,7 +240,46 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
      * exists. If this is the case, then it adds the car to the list of selected cars. If not,
      * then it selects
      */
-    private Func1<MenuItem, Boolean> continueWhenFormIsCorrect() {
+    private Predicate<MenuItem> continueWhenFormIsCorrect(){
+        return menuItem -> {
+        // First, reset the form
+        manufacturerText.setError(null);
+        modelText.setError(null);
+        yearText.setError(null);
+        engineText.setError(null);
+
+        View focusView = null;
+
+        //First check all input forms for empty strings
+        if (engineText.getText().length() == 0) {
+            engineText.setError("Cannot be empty");
+            focusView = engineText;
+        }
+        if (yearText.getText().length() == 0) {
+            yearText.setError("Cannot be empty");
+            focusView = yearText;
+        }
+        if (modelText.getText().length() == 0) {
+            modelText.setError("Cannot be empty");
+            focusView = modelText;
+        }
+        if (manufacturerText.getText().length() == 0) {
+            manufacturerText.setError("Cannot be empty");
+            focusView = manufacturerText;
+        }
+
+        // if any of the input forms contained empty values, then set the focus to the
+        // last one set.
+        if (focusView != null) {
+            LOG.info("Some input fields were empty");
+            focusView.requestFocus();
+            return false;
+        } else {
+            return true;
+        }
+    };
+    }
+    /*private Function<MenuItem, Boolean> continueWhenFormIsCorrect() {
         return menuItem -> {
             // First, reset the form
             manufacturerText.setError(null);
@@ -268,9 +317,9 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
                 return true;
             }
         };
-    }
+    }*/
 
-    private <T> Func1<T, Car> createCarFromForm() {
+    private <T> Function<T, Car> createCarFromForm() {
         return t -> {
             // Get the values
             String manufacturer = manufacturerText.getText().toString();
@@ -286,7 +335,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         };
     }
 
-    private Func1<Car, Boolean> continueWhenCarHasCorrectValues() {
+    private Predicate<Car> continueWhenCarHasCorrectValues() {
         return car -> {
             int currentYear = Calendar.getInstance().get(Calendar.YEAR);
             View focusView = null;
@@ -311,7 +360,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         };
     }
 
-    private Func1<Car, Car> checkCarAlreadyExist() {
+    private Function<Car, Car> checkCarAlreadyExist() {
         return car -> {
             String manu = car.getManufacturer();
             String model = car.getModel();
@@ -352,11 +401,11 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
 
     private void dispatchRemoteSensors() {
         sensorsSubscription = daoProvider.getSensorDAO()
-                .getAllCarsObservable()
+                .getAllCarsFlowable()
                 .onBackpressureBuffer(10000)
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io())
-                .subscribe(new Subscriber<List<Car>>() {
+                .subscribeWith(new DisposableSubscriber<List<Car>>() {
                     @Override
                     public void onStart() {
                         LOG.info("onStart() download sensors");
@@ -364,7 +413,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         LOG.info("onCompleted(): cars successfully downloaded.");
 
                         mainThreadWorker.schedule(() -> {
@@ -376,7 +425,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
 
                             // Initialize the spinner.
                             initSpinner();
-                            unsubscribe();
+                            dispose();
 
                             downloadView.setVisibility(View.INVISIBLE);
                         });
@@ -722,9 +771,9 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         ECAnimationUtils.animateHideView(getContext(), R.anim
                 .translate_slide_out_top_fragment, toolbar, toolbarExp);
         ECAnimationUtils.animateHideView(getContext(), contentView, R.anim
-                .translate_slide_out_bottom, new Action0() {
+                .translate_slide_out_bottom, new Action() {
             @Override
-            public void call() {
+            public void run() {
                 ((CarSelectionUiListener) getActivity()).onHideAddCarFragment();
             }
         });

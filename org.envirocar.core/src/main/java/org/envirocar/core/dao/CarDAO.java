@@ -30,7 +30,7 @@ import org.envirocar.core.exception.UnauthorizedException;
 
 import java.util.List;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 /**p
  * TODO JavaDoc
@@ -41,15 +41,15 @@ public interface CarDAO {
 
     List<Car> getAllCars() throws NotConnectedException, DataRetrievalFailureException;
 
-    Observable<List<Car>> getAllCarsObservable();
+    Flowable<List<Car>> getAllCarsFlowable();
 
     List<Car> getCarsByUser(User user) throws UserNotAuthenticatedException,
             NotConnectedException, DataRetrievalFailureException, UnauthorizedException;
 
-    Observable<List<Car>> getCarsByUserObservable(User user);
+    Flowable<List<Car>> getCarsByUserFlowable(User user);
 
     String createCar(Car car) throws NotConnectedException, DataCreationFailureException,
             UnauthorizedException;
 
-    Observable<Car> createCarObservable(Car car);
+    Flowable<Car> createCarFlowable(Car car);
 }

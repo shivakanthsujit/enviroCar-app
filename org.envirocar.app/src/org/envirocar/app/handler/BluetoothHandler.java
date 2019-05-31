@@ -51,10 +51,15 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 //import rx.Subscriber;
+import io.reactivex.subscribers.DisposableSubscriber;
 import rx.Subscription;
 
 /**
@@ -70,7 +75,7 @@ public class BluetoothHandler {
 
     private final Scheduler.Worker mWorker = Schedulers.io().createWorker();
 
-    private Subscription mDiscoverySubscription;
+    private Disposable mDiscoverySubscription;
     private boolean mIsAutoconnecting;
 
     // The bluetooth adapter
@@ -90,7 +95,7 @@ public class BluetoothHandler {
 
                         stopBluetoothDeviceDiscovery();
                         if (mDiscoverySubscription != null) {
-                            mDiscoverySubscription.unsubscribe();
+                            mDiscoverySubscription.dispose();
                             mDiscoverySubscription = null;
                         }
 
@@ -329,84 +334,91 @@ public class BluetoothHandler {
      * @return
      */
     public Flowable<BluetoothDevice> startBluetoothDiscovery() {
-        return Flowable.create(subscriber -> {
-            LOGGER.info("startBluetoothDiscovery(): subscriber call");
+        return Flowable.create(new FlowableOnSubscribe<BluetoothDevice>() {
+            @Override
+            public void subscribe(FlowableEmitter<BluetoothDevice> subscriber) throws Exception {
+                LOGGER.info("startBluetoothDiscovery(): subscriber call");
 
-            // If the device is already discovering, cancel the discovery before starting.
-            if (mBluetoothAdapter.isDiscovering()) {
-                mBluetoothAdapter.cancelDiscovery();
+                // If the device is already discovering, cancel the discovery before starting.
+                if (mBluetoothAdapter.isDiscovering()) {
+                    mBluetoothAdapter.cancelDiscovery();
 
-                // Small timeout such that the broadcast receiver does not receive the first
-                // ACTION_DISCOVERY_FINISHED
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    // Small timeout such that the broadcast receiver does not receive the first
+                    // ACTION_DISCOVERY_FINISHED
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
 
-            if (mDiscoverySubscription != null) {
-                // Cancel the pending subscription.
-                mDiscoverySubscription.unsubscribe();
-                mDiscoverySubscription = null;
-            }
+                if (mDiscoverySubscription != null) {
+                    // Cancel the pending subscription.
+                    mDiscoverySubscription.dispose();
+                    mDiscoverySubscription = null;
+                }
 
-            // Register for broadcasts when a device is discovered or the discovery has finished.
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-            filter.addAction(BluetoothDevice.ACTION_FOUND);
-            filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+                // Register for broadcasts when a device is discovered or the discovery has finished.
+                IntentFilter filter = new IntentFilter();
+                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+                filter.addAction(BluetoothDevice.ACTION_FOUND);
+                filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 
-            mDiscoverySubscription = BroadcastUtils
-                    .createBroadcastFlowable(context, filter)
-                    .subscribe(new Subscriber<Intent>() {
+                mDiscoverySubscription = BroadcastUtils
+                        .createBroadcastFlowable(context, filter)
+                        .subscribeWith(new DisposableSubscriber<Intent>() {
 
-                        @Override
-                        public void onComplete() {
-                            LOGGER.info("onCompleted()");
-                            subscriber.onComplete();
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                            LOGGER.info("onError()");
-                            subscriber.onError(e);
-                        }
-
-                        @Override
-                        public void onNext(Intent intent) {
-                            String action = intent.getAction();
-                            LOGGER.info("Discovery: received action = " + action);
-
-                            // If the discovery process has been started.
-                            if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
-                                subscriber.onStart();
-                            }
-
-                            // If the discovery process finds a device
-                            else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                                // Get the BluetoothDevice from the intent.
-                                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice
-                                        .EXTRA_DEVICE);
-                                // and inform the subscriber.
-                                subscriber.onNext(device);
-                            }
-
-                            // If the discovery process has been finished.
-                            else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                            @Override
+                            public void onComplete() {
+                                LOGGER.info("onCompleted()");
                                 subscriber.onComplete();
-                                mWorker.schedule(() -> {
-                                    if (!isUnsubscribed()) {
-                                        unsubscribe();
-                                    }
-                                }, 100, TimeUnit.MILLISECONDS);
                             }
-                        }
-                    });
 
-            subscriber.add(mDiscoverySubscription);
-            mBluetoothAdapter.startDiscovery();
-        });
+                            @Override
+                            public void onError(Throwable e) {
+                                LOGGER.info("onError()");
+                                subscriber.onError(e);
+                            }
+
+                            @Override
+                            public void onNext(Intent intent) {
+                                String action = intent.getAction();
+                                LOGGER.info("Discovery: received action = " + action);
+
+                                // If the discovery process has been started.
+                                if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
+                                    //CHECK
+                                    //subscriber.
+                                    //subscriber.onStart();
+                                }
+
+                                // If the discovery process finds a device
+                                else if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                                    // Get the BluetoothDevice from the intent.
+                                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice
+                                            .EXTRA_DEVICE);
+                                    // and inform the subscriber.
+                                    subscriber.onNext(device);
+                                }
+
+                                // If the discovery process has been finished.
+                                else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                                    subscriber.onComplete();
+                                    mWorker.schedule(() -> {
+                                        if (!isDisposed()) {
+                                            dispose();
+                                        }
+                                    }, 100, TimeUnit.MILLISECONDS);
+                                }
+                            }
+                        });
+
+                subscriber.setDisposable(mDiscoverySubscription);
+                mBluetoothAdapter.startDiscovery();
+            }
+        }, BackpressureStrategy.BUFFER
+
+        );
     }
 
 

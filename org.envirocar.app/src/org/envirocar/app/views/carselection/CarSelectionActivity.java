@@ -37,6 +37,8 @@ import org.envirocar.core.entity.Car;
 import org.envirocar.app.injection.BaseInjectorActivity;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.app.handler.DAOProvider;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,11 +50,14 @@ import javax.inject.Inject;
 import butterknife.ButterKnife;
 import butterknife.BindView;
 import butterknife.OnClick;
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
+import io.reactivex.Flowable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subscribers.DisposableSubscriber;
+//import rx.Subscriber;
+//import rx.Subscription;
+
 
 /**
  * @author dewall
@@ -93,7 +98,7 @@ public class CarSelectionActivity extends BaseInjectorActivity implements CarSel
 
     private CarSelectionListAdapter mCarListAdapter;
     private AutoCompleteArrayAdapter mManufacturerNameAdapter;
-    private Subscription loadingCarsSubscription;
+    private Disposable loadingCarsSubscription;
 
 
     @Override
@@ -156,8 +161,8 @@ public class CarSelectionActivity extends BaseInjectorActivity implements CarSel
         LOG.info("onDestroy()");
 
         if (this.loadingCarsSubscription != null &&
-                !this.loadingCarsSubscription.isUnsubscribed()) {
-            this.loadingCarsSubscription.unsubscribe();
+                !this.loadingCarsSubscription.isDisposed()) {
+            this.loadingCarsSubscription.dispose();
         }
 
         super.onDestroy();
@@ -238,7 +243,7 @@ public class CarSelectionActivity extends BaseInjectorActivity implements CarSel
 
         loadingCarsSubscription = mCarManager.getAllDeserializedCars()
                 .flatMap(cars -> {
-                    Observable<List<Car>> carsObs = Observable.just(cars);
+                    Flowable<List<Car>> carsObs = Flowable.just(cars);
                     if (mUserHandler.isLoggedIn() && !mCarManager.isDownloaded()) {
                         LOG.info("Loading Cars: user has not downloaded its remote cars. " +
                                 "Trying to fetch these.");
@@ -248,7 +253,7 @@ public class CarSelectionActivity extends BaseInjectorActivity implements CarSel
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Subscriber<List<Car>>() {
+                .subscribeWith(new DisposableSubscriber<List<Car>>() {
                     @Override
                     public void onStart() {
                         LOG.info("onStart()");
@@ -256,7 +261,7 @@ public class CarSelectionActivity extends BaseInjectorActivity implements CarSel
                     }
 
                     @Override
-                    public void onCompleted() {
+                    public void onComplete() {
                         LOG.info("onCompleted() loading of all cars");
                         loadingView.setVisibility(View.INVISIBLE);
                     }
