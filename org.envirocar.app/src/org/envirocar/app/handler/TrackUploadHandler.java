@@ -43,7 +43,9 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import rx.Observable;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
 import rx.Subscriber;
 import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func1;
@@ -91,21 +93,22 @@ public class TrackUploadHandler {
     }
 
     /**
-     * Returns an observable that uploads a single track.
+     * Returns an Flowable that uploads a single track.
      *
      * @param track    the track to upload.
      * @param activity
-     * @return an observable that uploads a single track.
+     * @return an Flowable that uploads a single track.
      */
-    public Observable<Track> uploadTrackObservable(Track track, Activity activity) {
-        return Observable.create(new Observable.OnSubscribe<Track>() {
+    public Flowable<Track> uploadTrackFlowable(Track track, Activity activity) {
+        return Flowable.create(new FlowableOnSubscribe<Track>() {
             @Override
-            public void call(Subscriber<? super Track> subscriber) {
-                LOG.info("uploadTrackObservable() start uploading.");
-                subscriber.onStart();
+            public void subscribe(FlowableEmitter<Track> subscriber) {
+                LOG.info("uploadTrackFlowable() start uploading.");
+                //CHECK
+                //subscriber.onStart();
 
                 // Create a dialog with which the user can accept the terms of use.
-                subscriber.add(Observable.just(track)
+                subscriber.setDisposable(Flowable.just(track)
                         // Verify whether the TermsOfUSe have been accepted.
                         // When the TermsOfUse have not been accepted, create an
                         // Dialog to accept and continue when the user has accepted.
@@ -121,22 +124,22 @@ public class TrackUploadHandler {
     }
 
     /**
-     * Returns an observable that uploads a list of tracks. If a track did not contain enough
+     * Returns an Flowable that uploads a list of tracks. If a track did not contain enough
      * measurements, i.e. the track obfuscation is throwing a {@link NoMeasurementsException},
      * then it returns null to its subscriber.
      *
      * @param tracks                the list of tracks to upload.
      * @param abortOnNoMeasurements if true, then it also closes the complete stream. Otherwise,
      *                              it returns null to its subscriber.
-     * @return an observable that uploads a list of tracks.
+     * @return an Flowable that uploads a list of tracks.
      */
-    public Observable<Track> uploadTracksObservable(
+    public Flowable<Track> uploadTracksFlowable(
             List<Track> tracks, boolean abortOnNoMeasurements) {
-        return uploadTracksObservable(tracks, abortOnNoMeasurements, null);
+        return uploadTracksFlowable(tracks, abortOnNoMeasurements, null);
     }
 
     /**
-     * Returns an observable that uploads a list of tracks. If a track did not contain enough
+     * Returns an Flowable that uploads a list of tracks. If a track did not contain enough
      * measurements, i.e. the track obfuscation is throwing a {@link NoMeasurementsException},
      * then it returns null to its subscriber. In case when the terms of use has not been
      * accepted for the specific user and the input parameter is not null, then it automatically
@@ -147,22 +150,22 @@ public class TrackUploadHandler {
      *                              it returns null to its subscriber.
      * @param activity              the activity of the current scope. When the activity is not
      *                              null, then it creates a dialog where it can be accepted.
-     * @return an observable that uploads a list of tracks.
+     * @return an Flowable that uploads a list of tracks.
      */
-    public Observable<Track> uploadTracksObservable(
+    public Flowable<Track> uploadTracksFlowable(
             List<Track> tracks, boolean abortOnNoMeasurements, Activity activity) {
         Preconditions.checkState(tracks != null && !tracks.isEmpty(),
                 "Input tracks cannot be null or empty.");
-        return Observable.just(tracks)
+        return Flowable.just(tracks)
                 .compose(TermsOfUseManager.TermsOfUseValidator.create(mTermsOfUseManager, activity))
-                .flatMap(tracks1 -> Observable.from(tracks1))
+                .flatMap(tracks1 -> Flowable.from(tracks1))
                 .concatMap(track -> uploadTrack(track)
                         .first()
                         .lift(getUploadTracksOperator(abortOnNoMeasurements)));
     }
 
-    private Observable<Track> uploadTrack(Track track) {
-        return Observable.just(track)
+    private Flowable<Track> uploadTrack(Track track) {
+        return Flowable.just(track)
                 // general validation of the track
                 .map(validateRequirementsForUpload())
                 // assets the car of the track and, in case it is not uploaded, it uploads the
@@ -173,9 +176,9 @@ public class TrackUploadHandler {
                 // obfuscate the track.
                 .map(asObfuscatedTrackWhenChecked())
                 // Upload the track
-                .flatMap(obfTrack -> mDAOProvider.getTrackDAO().createTrackObservable(obfTrack))
+                .flatMap(obfTrack -> mDAOProvider.getTrackDAO().createTrackFlowable(obfTrack))
                 // Update the database entry
-                .flatMap(uploadedTrack -> mEnviroCarDB.updateTrackObservable(uploadedTrack));
+                .flatMap(uploadedTrack -> mEnviroCarDB.updateTrackFlowable(uploadedTrack));
     }
 
     private Func1<Track, Track> validateRequirementsForUpload() {
@@ -223,8 +226,8 @@ public class TrackUploadHandler {
         };
     }
 
-    private Observable.Transformer<Track, Track> validateCarOfTrack() {
-        return trackObservable -> trackObservable.flatMap(
+    private Flowable.Transformer<Track, Track> validateCarOfTrack() {
+        return trackFlowable -> trackFlowable.flatMap(
                 track -> mCarManager
                         .assertTemporaryCar(track.getCar())
                         .map(car -> {
@@ -233,14 +236,14 @@ public class TrackUploadHandler {
                         }));
     }
 
-    private Observable.Transformer<Track, Track> updateTrackMetadata() {
-        return trackObservable -> trackObservable.flatMap(
+    private Flowable.Transformer<Track, Track> updateTrackMetadata() {
+        return trackFlowable -> trackFlowable.flatMap(
                 track -> trackDAOHandler
-                        .updateTrackMetadataObservable(track)
+                        .updateTrackMetadataFlowable(track)
                         .map(trackMetadata -> track));
     }
 
-    private Observable.Operator<Track, Track> getUploadTracksOperator(boolean abortOnNoMeasurements) {
+    private Flowable.Operator<Track, Track> getUploadTracksOperator(boolean abortOnNoMeasurements) {
         return subscriber -> new ItemForwardSubscriber<Track>((Subscriber<Track>) subscriber) {
             @Override
             public void onError(Throwable e) {

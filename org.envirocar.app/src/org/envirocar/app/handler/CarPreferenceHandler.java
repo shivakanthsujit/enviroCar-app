@@ -39,6 +39,7 @@ import org.envirocar.core.util.InjectApplicationScope;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.core.utils.CarUtils;
 import org.envirocar.storage.EnviroCarDB;
+import org.reactivestreams.Subscriber;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,12 +58,7 @@ import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.reactivex.FlowableEmitter;
 import io.reactivex.FlowableOnSubscribe;
-import io.reactivex.Maybe;
-import io.reactivex.MaybeObserver;
-import io.reactivex.MaybeSource;
-import io.reactivex.functions.Function;
-import io.reactivex.internal.operators.maybe.MaybeConcatArrayDelayError;
-import rx.Subscriber;
+
 
 /**
  * The manager for cars.
@@ -132,9 +128,10 @@ public class CarPreferenceHandler {
                 emitter.onComplete();
             }
             public void call(Subscriber<? super List<Car>> subscriber) {
-                subscriber.onStart();
+                //CHECK
+                //subscriber.onStart();
                 subscriber.onNext(getDeserialzedCars());
-                subscriber.onCompleted();
+                subscriber.onComplete();
             }
         }, BackpressureStrategy.BUFFER);
     }

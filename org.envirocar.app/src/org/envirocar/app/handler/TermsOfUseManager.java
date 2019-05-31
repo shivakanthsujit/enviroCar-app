@@ -43,7 +43,11 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import rx.Observable;
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.Observable;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.functions.Function;
 import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func1;
 
@@ -81,13 +85,13 @@ public class TermsOfUseManager {
         this.mDAOProvider = daoProvider;
     }
 
-    public Observable<TermsOfUse> verifyTermsOfUse(Activity activity) {
+    public Flowable<TermsOfUse> verifyTermsOfUse(Activity activity) {
         LOGGER.info("verifyTermsOfUse()");
-        return getCurrentTermsOfUseObservable()
+        return getCurrentTermsOfUseFlowable()
                 .flatMap(checkTermsOfUseAcceptance(activity));
     }
 
-    public <T> Observable<T> verifyTermsOfUse(Activity activity, T t) {
+    public <T> Flowable<T> verifyTermsOfUse(Activity activity, T t) {
         return verifyTermsOfUse(activity)
                 .map(termsOfUse -> {
                     LOGGER.info("User has accepted terms of use.");
@@ -95,15 +99,15 @@ public class TermsOfUseManager {
                 });
     }
 
-    public Observable<TermsOfUse> getCurrentTermsOfUseObservable() {
-        LOGGER.info("getCurrentTermsOfUseObservable()");
-        return current != null ? Observable.just(current) : getRemoteTermsOfUseObservable();
+    public Flowable<TermsOfUse> getCurrentTermsOfUseFlowable() {
+        LOGGER.info("getCurrentTermsOfUseFlowable()");
+        return current != null ? Flowable.just(current) : getRemoteTermsOfUseFlowable();
     }
 
-    private Observable<TermsOfUse> getRemoteTermsOfUseObservable() {
+    private Flowable<TermsOfUse> getRemoteTermsOfUseFlowable() {
         LOGGER.info("getRemoteTermsOfUse() TermsOfUse are null. Try to fetch the last TermsOfUse.");
         return mDAOProvider.getTermsOfUseDAO()
-                .getAllTermsOfUseObservable()
+                .getAllTermsOfUseFlowable()
                 .map(termsOfUses -> {
                     if (termsOfUses == null || termsOfUses.isEmpty())
                         throw OnErrorThrowable.from(new NotConnectedException(
@@ -126,11 +130,11 @@ public class TermsOfUseManager {
                 });
     }
 
-    private Func1<TermsOfUse, Observable<TermsOfUse>> checkTermsOfUseAcceptance(Activity activity) {
+    private Function<TermsOfUse, Flowable<TermsOfUse>> checkTermsOfUseAcceptance(Activity activity) {
         LOGGER.info("checkTermsOfUseAcceptance()");
-        return new Func1<TermsOfUse, Observable<TermsOfUse>>() {
+        return new Function<TermsOfUse, Flowable<TermsOfUse>>() {
             @Override
-            public Observable<TermsOfUse> call(TermsOfUse termsOfUse) {
+            public Flowable<TermsOfUse> apply(TermsOfUse termsOfUse) {
                 User user = mUserManager.getUser();
                 if (user == null) {
                     throw OnErrorThrowable.from(new NotLoggedInException(
@@ -145,11 +149,11 @@ public class TermsOfUseManager {
 
                 // If the user has accepted, then just return the generic type
                 if (hasAccepted) {
-                    return Observable.just(termsOfUse);
+                    return Flowable.just(termsOfUse);
                 }
-                // If the input activity is not null, then create an dialog observable.
+                // If the input activity is not null, then create an dialog Flowable.
                 else if (activity != null) {
-                    return createTermsOfUseDialogObservable(user, termsOfUse, activity);
+                    return createTermsOfUseDialogFlowable(user, termsOfUse, activity);
                 }
                 // Otherwise, throw an exception.
                 else {
@@ -160,13 +164,13 @@ public class TermsOfUseManager {
         };
     }
 
-    public Observable createTermsOfUseDialogObservable(
+    public Flowable createTermsOfUseDialogFlowable(
             User user, TermsOfUse currentTermsOfUse, Activity activity) {
         return new ReactiveTermsOfUseDialog(activity, user, currentTermsOfUse)
-                .asObservable()
-                .map(new Func1<TermsOfUse, TermsOfUse>() {
+                .asFlowable()
+                .map(new Function<TermsOfUse, TermsOfUse>() {
                     @Override
-                    public TermsOfUse call(TermsOfUse termsOfUse) {
+                    public TermsOfUse apply(TermsOfUse termsOfUse) {
                         LOGGER.info("TermsOfUseDialog: the user has accepted the ToU.");
 
                         try {
@@ -244,10 +248,10 @@ public class TermsOfUseManager {
     public TermsOfUse getCurrentTermsOfUse() {
         if (this.current == null) {
             mDAOProvider.getTermsOfUseDAO()
-                    .getAllTermsOfUseObservable()
-                    .map(new Func1<List<TermsOfUse>, TermsOfUse>() {
+                    .getAllTermsOfUseFlowable()
+                    .map(new Function<List<TermsOfUse>, TermsOfUse>() {
                         @Override
-                        public TermsOfUse call(List<TermsOfUse> termsOfUses) {
+                        public TermsOfUse apply(List<TermsOfUse> termsOfUses) {
                             if (termsOfUses != null) {
                                 list = termsOfUses;
                                 String id = termsOfUses.get(0).getId();
@@ -270,8 +274,7 @@ public class TermsOfUseManager {
                             return current;
                         }
                     })
-                    .toBlocking()
-                    .first();
+                    .blockingFirst();
         }
         LOGGER.info("Returning the current terms of use.");
         return current;
@@ -281,7 +284,7 @@ public class TermsOfUseManager {
     //    private void retrieveTermsOfUse() throws ServerException {
     //
     //        mDAOProvider.getTermsOfUseDAO()
-    //                .getAllTermsOfUseObservable()
+    //                .getAllTermsOfUseFlowable()
     //                .subscribeOn(Schedulers.io())
     //                .obser
     //
@@ -365,9 +368,18 @@ public class TermsOfUseManager {
     }
 
 
-    public static class TermsOfUseValidator<T> implements Observable.Transformer<T, T> {
+    public static class TermsOfUseValidator<T> implements ObservableTransformer<T, T> {
         private final TermsOfUseManager termsOfUseManager;
         private final Activity activity;
+
+        @Override
+        public Observable<T> apply(Observable<T> tObservable) {
+            return tObservable.flatMap(t ->
+                    termsOfUseManager.getCurrentTermsOfUseFlowable()
+                            .flatMap(termsOfUseManager.checkTermsOfUseAcceptance(activity))
+                            //.toObservable()
+                            .flatMap(termsOfUse -> Flowable.just(termsOfUse).toObservable()));
+        }
 
         public static <T> TermsOfUseValidator<T> create(
                 TermsOfUseManager termsOfUseManager,
@@ -396,12 +408,6 @@ public class TermsOfUseManager {
             this.activity = activity;
         }
 
-        @Override
-        public Observable<T> call(Observable<T> tObservable) {
-            return tObservable.flatMap(t ->
-                    termsOfUseManager.getCurrentTermsOfUseObservable()
-                            .flatMap(termsOfUseManager.checkTermsOfUseAcceptance(activity))
-                            .flatMap(termsOfUse -> Observable.just(t)));
-        }
+
     }
 }

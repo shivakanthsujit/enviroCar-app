@@ -31,14 +31,17 @@ import org.envirocar.core.entity.TermsOfUse;
 import org.envirocar.core.entity.User;
 import org.envirocar.core.logging.Logger;
 
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
-import rx.schedulers.Schedulers;
-
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+//import rx.Subscriber;
+//import rx.Subscription;
+//import rx.functions.Action0;
 /**
  * TODO JavaDoc
  *
@@ -66,14 +69,14 @@ public class ReactiveTermsOfUseDialog {
         this.currentTermsOfUse = currentToU;
     }
 
-    public Observable<TermsOfUse> asObservable() {
-        LOG.info("asObservable()");
-        return Observable.create(new Observable.OnSubscribe<TermsOfUse>() {
+    public Flowable<TermsOfUse> asFlowable() {
+        LOG.info("asFlowable()");
+        return Flowable.create(new FlowableOnSubscribe<TermsOfUse>() {
             private MaterialDialog termsOfUseDialog;
 
             @Override
-            public void call(Subscriber<? super TermsOfUse> subscriber) {
-                LOG.info("asObservable().call()");
+            public void subscribe(FlowableEmitter<TermsOfUse> subscriber) {
+                LOG.info("asFlowable().call()");
 
                 boolean firstTime = user.getTermsOfUseVersion() == null;
 
@@ -99,20 +102,20 @@ public class ReactiveTermsOfUseDialog {
 
                 // Add an additional subscription to the subscriber that dismisses the terms of
                 // use dialog on unsubscribe.
-                subscriber.add(new Subscription() {
+                subscriber.setDisposable(new Disposable() {
                     @Override
-                    public void unsubscribe() {
+                    public void dispose() {
                         if (termsOfUseDialog != null)
                             termsOfUseDialog.dismiss();
                     }
 
                     @Override
-                    public boolean isUnsubscribed() {
-                        return subscriber.isUnsubscribed();
+                    public boolean isDisposed() {
+                        return subscriber.isCancelled();
                     }
                 });
             }
-        });
+        }, BackpressureStrategy.BUFFER);
     }
 
     /**
@@ -123,7 +126,7 @@ public class ReactiveTermsOfUseDialog {
      * @return the created dialog instance.
      */
     private MaterialDialog.Builder createDialogBuilder(Spanned content,
-                                                       Action0 onPositive, Action0 onNegative) {
+                                                       Runnable onPositive, Runnable onNegative) {
         LOG.info("createDialog()");
         return new MaterialDialog.Builder(activityContext)
                 .title(R.string.terms_of_use_title)

@@ -25,7 +25,7 @@ import org.envirocar.core.exception.NotConnectedException;
 
 import java.util.List;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 /**
  * TODO JavaDoc
@@ -36,9 +36,9 @@ public interface TermsOfUseDAO {
 
     TermsOfUse getTermsOfUse(String id) throws DataRetrievalFailureException, NotConnectedException;
 
-    Observable<TermsOfUse> getTermsOfUseObservable(String id);
+    Flowable<TermsOfUse> getTermsOfUseFlowable(String id);
 
     List<TermsOfUse> getAllTermsOfUse() throws DataRetrievalFailureException, NotConnectedException;
 
-    Observable<List<TermsOfUse>> getAllTermsOfUseObservable();
+    Flowable<List<TermsOfUse>> getAllTermsOfUseFlowable();
 }
