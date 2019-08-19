@@ -59,6 +59,7 @@ import android.widget.Toast;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.squareup.otto.Subscribe;
 import com.transitionseverywhere.Recolor;
+//import com.transitionseverywhere.Recolor;
 
 import org.envirocar.app.BuildConfig;
 import org.envirocar.app.R;
@@ -80,6 +81,7 @@ import org.envirocar.app.views.carselection.CarSelectionActivity;
 import org.envirocar.app.views.login.SigninActivity;
 import org.envirocar.app.views.login.SignupActivity;
 import org.envirocar.app.views.obdselection.OBDSelectionActivity;
+import org.envirocar.app.views.onboarding.OnboardingActivity;
 import org.envirocar.app.views.recordingscreen.GPSOnlyTrackRecordingScreen;
 import org.envirocar.app.views.recordingscreen.OBDPlusGPSTrackRecordingScreen;
 import org.envirocar.app.views.utils.DialogUtils;
@@ -239,6 +241,9 @@ public class DashBoardFragment extends BaseInjectorFragment {
     protected ConstraintLayout optionsLayout;
     @BindView(R.id.startButton)
     protected Button startButton;
+
+    @BindView(R.id.btn_startOnboarding)
+    protected Button startOnboarding;
 
     private MaterialDialog mConnectingDialog;
 
@@ -423,6 +428,13 @@ public class DashBoardFragment extends BaseInjectorFragment {
     protected void onRegisterInitiatorButtonClicked() {
         Intent intent = new Intent(getActivity(), SignupActivity.class);
         intent.putExtra("from", "register");
+        startActivity(intent);
+    }
+
+    @OnClick(R.id.btn_startOnboarding)
+    protected void onStartOnboardingClicked(){
+        Intent intent = new Intent(getActivity(), OnboardingActivity.class);
+        intent.putExtra("test-call", true);
         startActivity(intent);
     }
 

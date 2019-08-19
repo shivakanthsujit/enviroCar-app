@@ -49,6 +49,7 @@ import org.envirocar.app.views.TroubleshootingFragment;
 import org.envirocar.app.views.dashboard.DashBoardFragment;
 import org.envirocar.app.views.statistics.GraphFragment;
 import org.envirocar.app.views.statistics.StatisticsFragment;
+import org.envirocar.app.views.onboarding.OnboardingActivity;
 import org.envirocar.app.views.tracklist.TrackListPagerFragment;
 import org.envirocar.core.events.TrackFinishedEvent;
 import org.envirocar.core.exception.NoMeasurementsException;
@@ -155,7 +156,6 @@ public class BaseMainActivityBottomBar extends BaseInjectorActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_main_bottom_bar);
         ButterKnife.bind(this);
-
         navigationBottomBar.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         navigationBottomBar.setSelectedItemId(R.id.navigation_dashboard);
 
