@@ -25,6 +25,7 @@ import com.google.gson.reflect.TypeToken;
 import org.envirocar.core.entity.Announcement;
 import org.envirocar.core.entity.Car;
 import org.envirocar.core.entity.Fueling;
+import org.envirocar.core.entity.GlobalStatistics;
 import org.envirocar.core.entity.Measurement;
 import org.envirocar.core.entity.TermsOfUse;
 import org.envirocar.core.entity.Track;
@@ -36,6 +37,7 @@ import org.envirocar.remote.serializer.CarListDeserializer;
 import org.envirocar.remote.serializer.CarSerializer;
 import org.envirocar.remote.serializer.FuelingListSerializer;
 import org.envirocar.remote.serializer.FuelingSerializer;
+import org.envirocar.remote.serializer.GlobalStatisticsDeserializer;
 import org.envirocar.remote.serializer.MeasurementSerializer;
 import org.envirocar.remote.serializer.RemoteTrackListDeserializer;
 import org.envirocar.remote.serializer.TermsOfUseListSerializer;
@@ -74,8 +76,14 @@ public class SerializationModule {
 
     @Provides
     @Singleton
-    protected TrackStatisticsDeserializer provideTrackStatisticsDeserializer() {
+    protected TrackStatisticsDeserializer provideTrackStatisticsDeserializer(){
         return new TrackStatisticsDeserializer();
+    }
+
+    @Provides
+    @Singleton
+    protected GlobalStatisticsDeserializer provideGlobalStatisticsDeserializer(){
+        return new GlobalStatisticsDeserializer();
     }
 
     @Provides
@@ -162,7 +170,7 @@ public class SerializationModule {
 
     @Provides
     @Singleton
-    protected Gson provideGson(UserSerializer userSerializer, UserStatisticDeserializer userStatisticDeserializer, TrackStatisticsDeserializer trackStatisticsDeserializer,
+    protected Gson provideGson(UserSerializer userSerializer, UserStatisticDeserializer userStatisticDeserializer, TrackStatisticsDeserializer trackStatisticsDeserializer, GlobalStatisticsDeserializer globalStatisticsDeserializer,
                                TypeToken<List<Car>> carListTypeToken, CarListDeserializer carListDeserializer, TrackSerializer trackSerializer, MeasurementSerializer measurementSerializer,
                                TypeToken<List<Track>> trackListTypeToken, RemoteTrackListDeserializer remoteTrackListDeserializer, TermsOfUseSerializer termsOfUseSerializer,
                                TypeToken<List<TermsOfUse>> termsOfUseListTypeToken, TermsOfUseListSerializer termsOfUseListSerializer, AnnouncementSerializer announcementSerializer,
@@ -171,6 +179,7 @@ public class SerializationModule {
                 .registerTypeAdapter(User.class, userSerializer)
                 .registerTypeAdapter(UserStatistics.class, userStatisticDeserializer)
                 .registerTypeAdapter(TrackStatistics.class, trackStatisticsDeserializer)
+                .registerTypeAdapter(GlobalStatistics.class, globalStatisticsDeserializer)
                 .registerTypeAdapter(Car.class, new CarSerializer())
                 .registerTypeAdapter(carListTypeToken.getType(), carListDeserializer)
                 .registerTypeAdapter(Track.class, trackSerializer)

@@ -18,6 +18,8 @@
  */
 package org.envirocar.core.entity;
 
+import android.os.Parcelable;
+
 import org.envirocar.core.exception.NoMeasurementsException;
 import org.envirocar.core.util.TrackMetadata;
 
