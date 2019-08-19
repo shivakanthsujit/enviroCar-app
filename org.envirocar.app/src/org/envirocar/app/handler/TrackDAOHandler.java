@@ -204,7 +204,8 @@ public class TrackDAOHandler {
             remoteTrack.setCreated(downloadedTrack.getCreated());
             remoteTrack.setTrackStatus(downloadedTrack.getTrackStatus());
             remoteTrack.setMetadata(downloadedTrack.getMetadata());
-
+            remoteTrack.setBegin(downloadedTrack.getBegin());
+            remoteTrack.setEnd(downloadedTrack.getEnd());
             remoteTrack.setStartTime(downloadedTrack.getStartTime());
             remoteTrack.setEndTime(downloadedTrack.getEndTime());
             remoteTrack.setDownloadState(Track.DownloadState.DOWNLOADED);
