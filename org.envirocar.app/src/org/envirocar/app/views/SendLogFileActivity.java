@@ -87,6 +87,11 @@ public class SendLogFileActivity extends AppCompatActivity {
     private static final String OTHER_DETAILS_PREFIX = "extra-info";
     private static final String EXTENSION = ".zip";
 
+    @Inject
+    protected CarPreferenceHandler mCarPrefHandler;
+    @Inject
+    protected BluetoothHandler mBluetoothHandler;
+
     @BindView(R.id.report_issue_header)
     protected EditText title;
     @BindView(R.id.report_issue_time_since_crash)
@@ -103,11 +108,6 @@ public class SendLogFileActivity extends AppCompatActivity {
     protected ListView checkBoxListView;
     @BindView(R.id.report_issue_other_file)
     protected TextView otherFileLocation;
-
-    @Inject
-    protected CarPreferenceHandler mCarPrefHandler;
-    @Inject
-    protected BluetoothHandler mBluetoothHandler;
 
     protected List<CheckBoxItem> checkBoxItems;
     protected List<String> subjectHeaders;
@@ -153,7 +153,7 @@ public class SendLogFileActivity extends AppCompatActivity {
                 locationText.setText("An error occured while creating the report bundle. Please send in the logs available at " +
                         LocalFileHandler.effectiveFile.getParentFile().getAbsolutePath());
             }
-            if(otherFile!=null){
+            if (otherFile!=null) {
                 otherFileLocation.setText(otherFile.getAbsolutePath());
             } else {
                 LOG.info("Error creating the versions txt file.");
@@ -161,12 +161,9 @@ public class SendLogFileActivity extends AppCompatActivity {
             submitIssue.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if(checkIfCheckboxSelected())
-                    {
+                    if(checkIfCheckboxSelected()) {
                         sendLogFile(tmpBundle);
-                    }
-                    else
-                    {
+                    } else {
                         createDialog(tmpBundle);
                     }
                 }
@@ -174,13 +171,13 @@ public class SendLogFileActivity extends AppCompatActivity {
         } catch (IOException e) {
             LOG.warn(e.getMessage(), e);
         }
-        hideKeyboard(getCurrentFocus());
+
     }
 
     /**
      * function to set the names for the checkboxes
      */
-    public void setCheckBoxes(){
+    public void setCheckBoxes() {
         List<String> totalList = new ArrayList<>();
         totalList.addAll(subjectHeaders);
         totalList.addAll(bodyHeaders);
@@ -210,15 +207,13 @@ public class SendLogFileActivity extends AppCompatActivity {
     /**
      * @return true if at least one checkbox is ticked
      */
-    public boolean checkIfCheckboxSelected(){
+    public boolean checkIfCheckboxSelected() {
 
         LOG.info("Checking checkboxes.");
-        for(int i=0;i<checkBoxItems.size();i++)
-        {
+        for (int i = 0; i < checkBoxItems.size(); i++) {
             CheckBoxItem dto = checkBoxItems.get(i);
             LOG.info("Checkbox " + i + " : " + dto.isChecked());
-            if(dto.isChecked())
-            {
+            if (dto.isChecked()) {
                 LOG.info("Ticked Checkbox found.");
                 return Boolean.TRUE;
             }
@@ -232,7 +227,7 @@ public class SendLogFileActivity extends AppCompatActivity {
      * else continue
      * @param reportBundle
      */
-    public void createDialog(File reportBundle){
+    public void createDialog(File reportBundle) {
         AlertDialog.Builder builder = new AlertDialog.Builder(SendLogFileActivity.this);
         builder.setMessage("You have not selected any of the checkboxes. These help developers " +
                 "sort through issues quickly and resolve them. Please consider filling those that " +
@@ -271,8 +266,7 @@ public class SendLogFileActivity extends AppCompatActivity {
      */
     protected void sendLogFile(File reportBundle) {
         Intent emailIntent = new Intent(android.content.Intent.ACTION_SENDTO);
-        emailIntent.setType("message/rfc822");
-        emailIntent.setData(Uri.parse("mailto:"));
+        emailIntent.setType("message/rfc822").setData(Uri.parse("mailto:"));
         emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL,
                 new String[]{REPORTING_EMAIL});
         emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
@@ -292,7 +286,7 @@ public class SendLogFileActivity extends AppCompatActivity {
      * Manufacturer and Model name of the phone
      * @return the string containing all the above
      */
-    protected String getVersionNames(){
+    protected String getVersionNames() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Version Details\n");
         String versionName = Util.getVersionString(getBaseContext());
@@ -309,6 +303,7 @@ public class SendLogFileActivity extends AppCompatActivity {
         stringBuilder.append("\n Android API Level: " + version);
         stringBuilder.append("\n Version Release: " + versionRelease);
         stringBuilder.append("\n");
+
         return  stringBuilder.toString();
 
     }
@@ -317,17 +312,20 @@ public class SendLogFileActivity extends AppCompatActivity {
      * gets the current car and bluetooth adapter name
      * @return the string with the data
      */
-    protected String getCarBluetoothNames(){
+    protected String getCarBluetoothNames() {
         StringBuilder stringBuilder = new StringBuilder();
-        Car car = CarUtils.instantiateCar(PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(PreferenceConstants
-                .PREFERENCE_TAG_CAR, null));
+        Car car = CarUtils.instantiateCar(PreferenceManager.getDefaultSharedPreferences(
+                                            getApplicationContext()).getString(PreferenceConstants
+                                            .PREFERENCE_TAG_CAR, null));
         stringBuilder.append("Car Details: ");
-        if(car!=null)
-            stringBuilder.append(car.getManufacturer() + " " + car.getModel());
+        if (car != null)
+            stringBuilder.append(car.getManufacturer()).append(" ").append(car.getModel());
         else
             stringBuilder.append("No Car Selected.");
-        stringBuilder.append("\nBluetooth Adapter: " + PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getString(PreferenceConstants
-                .PREF_BLUETOOTH_NAME, null));
+        stringBuilder.append("\nBluetooth Adapter: ");
+        stringBuilder.append(PreferenceManager.getDefaultSharedPreferences(
+                                                getApplicationContext()).getString(PreferenceConstants
+                                                .PREF_BLUETOOTH_NAME, null));
         stringBuilder.append("\n");
         return stringBuilder.toString();
     }
@@ -336,13 +334,12 @@ public class SendLogFileActivity extends AppCompatActivity {
      * finds the checkboxes which have been ticked and their tag names
      * @return returns the string with the tags to be added to the subject line
      */
-    protected String createSubject(){
+    protected String createSubject() {
         StringBuilder subject = new StringBuilder();
-        for(int i=0;i<subjectTags.size();i++)
+        for (int i = 0; i < subjectTags.size(); i++)
         {
             CheckBoxItem dto = checkBoxItems.get(i);
-            if(dto.isChecked())
-            {
+            if (dto.isChecked()) {
                 subject.append(subjectTags.get(i));
             }
         }
@@ -352,14 +349,13 @@ public class SendLogFileActivity extends AppCompatActivity {
     /**
      * @return the string containing the body tags
      */
-    protected String createBodyTags(){
+    protected String createBodyTags() {
         StringBuilder bodyT = new StringBuilder();
         bodyT.append("Tags: ");
-        for(int i=0;i<bodyTags.size();i++)
+        for (int i = 0; i < bodyTags.size(); i++)
         {
             CheckBoxItem dto = checkBoxItems.get(i+subjectTags.size());
-            if(dto.isChecked())
-            {
+            if(dto.isChecked()) {
                 bodyT.append(bodyTags.get(i));
             }
         }
@@ -409,7 +405,7 @@ public class SendLogFileActivity extends AppCompatActivity {
         String text;
         try {
             text = whenField.getText().toString();
-        }catch (Exception e){
+        } catch (Exception e){
             e.printStackTrace();
             text = null;
         }
@@ -426,7 +422,7 @@ public class SendLogFileActivity extends AppCompatActivity {
     }
 
 
-    public File createVersionAndErrorDetailsFile() throws IOException{
+    public File createVersionAndErrorDetailsFile() throws IOException {
         File otherFile = Util.createFileOnExternalStorage(OTHER_DETAILS_PREFIX
                 + ".txt");
         StringBuilder text = new StringBuilder();
@@ -468,7 +464,7 @@ public class SendLogFileActivity extends AppCompatActivity {
             }
         });
 
-        if(oldFiles!=null){
+        if (oldFiles != null) {
             for (File file : oldFiles) {
                 file.delete();
             }
@@ -492,7 +488,7 @@ public class SendLogFileActivity extends AppCompatActivity {
     }
 
     public void hideKeyboard(View view) {
-        if(view != null){
+        if (view != null) {
             InputMethodManager inputMethodManager =(InputMethodManager) getSystemService(Activity.INPUT_METHOD_SERVICE);
             inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
             view.clearFocus();
@@ -527,7 +523,7 @@ public class SendLogFileActivity extends AppCompatActivity {
     /**
      * Gets the strings for the checkboxes and sets the adapter
      */
-    public void set(){
+    public void set() {
         checkBoxItems = new ArrayList<>();
         extraInfo = new String();
         setCheckBoxes();
@@ -535,17 +531,6 @@ public class SendLogFileActivity extends AppCompatActivity {
         checkboxBaseAdapter.notifyDataSetChanged();
         checkBoxListView.setAdapter(checkboxBaseAdapter);
         setListViewHeightBasedOnChildren(checkBoxListView);
-
-        checkBoxListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int itemIndex, long l) {
-
-                CheckBoxItem item = (CheckBoxItem) adapterView.getAdapter().getItem(itemIndex);
-                CheckBox itemCheckbox = (CheckBox) view.findViewById(R.id.report_issue_checkbox_item);
-                LOG.info("Checkbox " + itemIndex + " is " + itemCheckbox.isChecked());
-                LOG.info("Checkbox List at " + itemIndex + " is " + checkBoxItems.get(itemIndex).isChecked());
-            }
-        });
     }
 
 }
