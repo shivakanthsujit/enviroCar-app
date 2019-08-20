@@ -54,13 +54,11 @@ import org.envirocar.core.trackprocessing.statistics.TrackStatisticsProvider;
 import org.envirocar.core.util.TrackMetadata;
 import org.envirocar.core.util.Util;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -78,16 +76,22 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
     private static final Logger LOG = Logger.getLogger(TrackListLocalCardFragment.class);
 
     private boolean dateFilter = false;
-    private boolean carFilter = false;
     private Date startDate;
     private Date endDate;
+
+    private boolean carFilter = false;
     private String carName;
+
     private Integer sortC = 0;
     private Integer sortO = 1;
+
     private FilterViewModel filterViewModel;
     private SortViewModel sortViewModel;
+
     private List<Track> localList = Collections.synchronizedList(new ArrayList<>());
-    private Boolean mvVisible = true;
+
+    // Holds whether the MapView is visible or not
+    private Boolean mapViewVisible = true;
 
     /**
      *
@@ -106,6 +110,7 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
         super.onCreate(savedInstanceState);
         MainActivityComponent mainActivityComponent =  BaseApplication.get(getActivity()).getBaseApplicationComponent().plus(new MainActivityModule(getActivity()));
         mainActivityComponent.inject(this);
+
         filterViewModel = ViewModelProviders.of(this.getActivity()).get(FilterViewModel.class);
         sortViewModel = ViewModelProviders.of(this.getActivity()).get(SortViewModel.class);
 
@@ -128,7 +133,7 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
         });
 
         sortViewModel.getMapActive().observe(this, item-> {
-            mvVisible = sortViewModel.getMapChoice().getValue();
+            mapViewVisible = sortViewModel.getMapChoice().getValue();
             updateView();
         });
     }
@@ -573,16 +578,16 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
     }
 
     public  void updateView() {
+        mRecyclerViewAdapter.setGuideline(mapViewVisible);
 
-        mRecyclerViewAdapter.setGuideline(mvVisible);
         setTrackList();
+
         if (dateFilter) {
             for (int i = 0; i < mTrackList.size(); ++i) {
                 Track track = mTrackList.get(i);
-                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault());
                 try {
-                    Date trackDateStart = simpleDateFormat.parse(track.getBegin());
-                    Date trackDateEnd = simpleDateFormat.parse(track.getEnd());
+                    Date trackDateStart = new Date(Util.isoDateToLong(track.getBegin()));
+                    Date trackDateEnd = new Date(Util.isoDateToLong(track.getEnd()));
                     if (trackDateStart.before(startDate) || trackDateEnd.after(endDate)) {
                         mTrackList.remove(i);
                         i--;
@@ -592,6 +597,7 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
                 }
             }
         }
+
         if (carFilter) {
             for (int i = 0; i < mTrackList.size(); ++i) {
                 Track track = mTrackList.get(i);
@@ -665,15 +671,17 @@ public class TrackListLocalCardFragment extends AbstractTrackListCardFragment<
             TransitionManager.beginDelayedTransition(mRecyclerView, new Slide(Gravity.LEFT).
                     setDuration(1000).
                     setInterpolator(new FastOutSlowInInterpolator()));
+
             mRecyclerView.removeAllViews();
             mRecyclerView.setVisibility(View.VISIBLE);
-            infoView.setVisibility(View.GONE);
             mRecyclerViewAdapter.notifyDataSetChanged();
+
+            infoView.setVisibility(View.GONE);
             ECAnimationUtils.animateShowView(getActivity(), mFAB,
                     R.anim.translate_slide_in_bottom_fragment);
         }
-
     }
+
     private void showNoLocalTracksInfo(Boolean afterFilter) {
         mRecyclerView.setVisibility(View.GONE);
         if (!afterFilter) {

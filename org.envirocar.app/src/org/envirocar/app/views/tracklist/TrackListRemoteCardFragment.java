@@ -44,14 +44,13 @@ import org.envirocar.core.exception.NotConnectedException;
 import org.envirocar.core.exception.UnauthorizedException;
 import org.envirocar.core.logging.Logger;
 import org.envirocar.core.trackprocessing.statistics.TrackStatisticsProvider;
+import org.envirocar.core.util.Util;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import rx.Observer;
 import rx.Subscriber;
@@ -70,16 +69,22 @@ public class TrackListRemoteCardFragment extends AbstractTrackListCardFragment<
 
     private boolean hasLoadedRemote = false;
     private boolean hasLoadedStored = false;
+
     private boolean dateFilter = false;
-    private boolean carFilter = false;
-    private boolean mvVisible = true;
     private Date startDate;
     private Date endDate;
+
+    private boolean carFilter = false;
     private String carName;
+
+    private boolean mvVisible = true;
+
     private Integer sortC = 0;
     private Integer sortO = 1;
+
     private FilterViewModel filterViewModel;
     private SortViewModel sortViewModel;
+
     private List<Track> remoteList = Collections.synchronizedList(new ArrayList<>());
 
     @Override
@@ -87,6 +92,7 @@ public class TrackListRemoteCardFragment extends AbstractTrackListCardFragment<
         super.onCreate(savedInstanceState);
         MainActivityComponent mainActivityComponent = BaseApplication.get(getActivity()).getBaseApplicationComponent().plus(new MainActivityModule(getActivity()));
         mainActivityComponent.inject(this);
+
         filterViewModel = ViewModelProviders.of(this.getActivity()).get(FilterViewModel.class);
         sortViewModel = ViewModelProviders.of(this.getActivity()).get(SortViewModel.class);
 
@@ -245,32 +251,18 @@ public class TrackListRemoteCardFragment extends AbstractTrackListCardFragment<
                         LOG.info("Track " + track.getRemoteID() + " downloaded. Setting ViewHolder");
                         mRecyclerViewAdapter.bindTrackViewHolder(holder, track, true);
 
-                        // and hide the download button
-                        ECAnimationUtils.animateHideView(getActivity(), R.anim.fade_out,
-                                holder.mDownloadButton, holder
+                        // and hide the download notification
+                        ECAnimationUtils.animateHideView(getActivity(), R.anim.fade_out, holder
                                         .mDownloadNotification);
-                        /*
-                        holder.mProgressCircle.beginFinalAnimation();
-                        holder.mProgressCircle.attachListener(() -> {
-                            // When the visualization is finished, then Init the
-                            // content view including its mapview and track details.
-                            mRecyclerViewAdapter.bindTrackViewHolder(holder, track, true);
 
-                            // and hide the download button
-                            ECAnimationUtils.animateHideView(getActivity(), R.anim.fade_out,
-                                    holder.mProgressCircle, holder.mDownloadButton, holder
-                                            .mDownloadNotification);
-                            //ECAnimationUtils.animateShowView(getActivity(), holder.mContentView, R
-                            //        .anim.fade_in);
-                        });
-                        */
+                        ECAnimationUtils.animateShowView(getActivity(), holder.mContentView, R
+                                        .anim.fade_in);
                     }
 
                     @Override
                     public void onError(Throwable e) {
                         LOG.error("Not connected exception", e);
                         showSnackbar(R.string.track_list_communication_error);
-                        //holder.mProgressCircle.hide();
                         track.setDownloadState(Track.DownloadState.DOWNLOADING);
                         holder.mDownloadNotification.setText(
                                 R.string.track_list_error_while_downloading);
@@ -420,25 +412,26 @@ public class TrackListRemoteCardFragment extends AbstractTrackListCardFragment<
     private void updateView() {
         LOG.info("updateView()");
         if (hasLoadedStored && hasLoadedRemote) {
-            LOG.info("Tracked loaded.");
             setTrackList();
             hideProgressView();
+
             if (mTrackList.isEmpty()) {
                 LOG.info("No tracks.");
                 showNoTracksInfo(false);
             } else {
                 mRecyclerView.removeAllViews();
                 mRecyclerViewAdapter.setGuideline(mvVisible);
+
                 TransitionManager.beginDelayedTransition(mRecyclerView, new Slide(Gravity.LEFT).
                         setDuration(1000).
                         setInterpolator(new FastOutSlowInInterpolator()));
+
                 if (dateFilter) {
                     for (int i = 0; i < mTrackList.size(); ++i) {
                         Track track = mTrackList.get(i);
-                        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault());
                         try {
-                            Date trackDateStart = simpleDateFormat.parse(track.getBegin());
-                            Date trackDateEnd = simpleDateFormat.parse(track.getEnd());
+                            Date trackDateStart = new Date(Util.isoDateToLong(track.getBegin()));
+                            Date trackDateEnd = new Date(Util.isoDateToLong(track.getEnd()));
                             if (trackDateStart.before(startDate) || trackDateEnd.after(endDate)) {
                                 mTrackList.remove(i);
                                 i--;
@@ -448,6 +441,7 @@ public class TrackListRemoteCardFragment extends AbstractTrackListCardFragment<
                         }
                     }
                 }
+
                 if (carFilter) {
                     for (int i = 0; i < mTrackList.size(); ++i) {
                         Track track = mTrackList.get(i);
