@@ -22,25 +22,29 @@ import android.app.Activity;
 import android.graphics.Point;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
+import androidx.core.widget.NestedScrollView;
+
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Pair;
 import android.view.Display;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.jakewharton.rxbinding.support.v7.widget.RxToolbar;
+import com.jakewharton.rxbinding.view.RxView;
 
 import org.envirocar.app.main.BaseApplicationComponent;
 import org.envirocar.app.R;
@@ -81,14 +85,17 @@ import rx.schedulers.Schedulers;
 public class CarSelectionAddCarFragment extends BaseInjectorFragment {
     private static final Logger LOG = Logger.getLogger(CarSelectionAddCarFragment.class);
 
-    @BindView(R.id.activity_car_selection_newcar_toolbar)
-    protected Toolbar toolbar;
-    @BindView(R.id.activity_car_selection_newcar_toolbar_exp)
-    protected View toolbarExp;
-    @BindView(R.id.activity_car_selection_newcar_content_view)
-    protected View contentView;
+    @BindView(R.id.activity_car_selection_newcar_close)
+    protected ImageView closeButton;
+    @BindView(R.id.activity_car_selection_newcar_header)
+    protected RelativeLayout header;
+    @BindView(R.id.activity_car_selection_newcar_done)
+    protected Button doneButton;
+    
+    @BindView(R.id.activity_car_selection_newcar_nestedscrollview)
+    protected NestedScrollView contentView;
     @BindView(R.id.activity_car_selection_newcar_download_layout)
-    protected View downloadView;
+    protected LinearLayout downloadView;
 
     @BindView(R.id.activity_car_selection_newcar_manufacturer)
     protected TextView manufacturerText;
@@ -154,18 +161,21 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         yearSpinner.setDropDownWidth(width / 2);
         engineSpinner.setDropDownWidth(width / 2);
 
-        toolbar.setNavigationIcon(R.drawable.ic_close_white_24dp);
-        toolbar.inflateMenu(R.menu.menu_logbook_add_fueling);
-        toolbar.setNavigationOnClickListener(v -> {hideKeyboard(v); closeThisFragment(); });
-
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                hideKeyboard(view); 
+                closeThisFragment();
+            }
+        });
 
         // initially we set the toolbar exp to gone
-        toolbar.setVisibility(View.GONE);
-        toolbarExp.setVisibility(View.GONE);
+        header.setVisibility(View.GONE);
         contentView.setVisibility(View.GONE);
+        doneButton.setVisibility(View.GONE);
         downloadView.setVisibility(View.INVISIBLE);
 
-        createCarSubscription = RxToolbar.itemClicks(toolbar)
+        createCarSubscription = RxView.clicks(doneButton)
                 .filter(continueWhenFormIsCorrect())
                 .map(createCarFromForm())
                 .filter(continueWhenCarHasCorrectValues())
@@ -202,12 +212,12 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
     public void onResume() {
         LOG.info("onResume()");
         super.onResume();
-        ECAnimationUtils.animateShowView(getContext(), toolbar,
-                R.anim.translate_slide_in_top_fragment);
-        ECAnimationUtils.animateShowView(getContext(), toolbarExp,
-                R.anim.translate_slide_in_top_fragment);
-        ECAnimationUtils.animateShowView(getContext(), contentView,
-                R.anim.translate_slide_in_bottom_fragment);
+        ECAnimationUtils.animateShowView(getContext(),
+                header, R.anim.translate_slide_in_top_fragment);
+        ECAnimationUtils.animateShowView(getContext(),
+                contentView, R.anim.translate_slide_in_bottom_fragment);
+        ECAnimationUtils.animateShowView(getContext(),
+                doneButton, R.anim.translate_slide_in_bottom_fragment);
     }
 
     @Override
@@ -230,8 +240,9 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
      * exists. If this is the case, then it adds the car to the list of selected cars. If not,
      * then it selects
      */
-    private Func1<MenuItem, Boolean> continueWhenFormIsCorrect() {
-        return menuItem -> {
+    private <T> Func1<T, Boolean> continueWhenFormIsCorrect() {
+        return T -> {
+            LOG.info("continueWhenFormIsCorrect");
             // First, reset the form
             manufacturerText.setError(null);
             modelText.setError(null);
@@ -267,6 +278,7 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
             } else {
                 return true;
             }
+
         };
     }
 
@@ -720,7 +732,9 @@ public class CarSelectionAddCarFragment extends BaseInjectorFragment {
         ECAnimationUtils.animateHideView(getContext(),
                 ((CarSelectionActivity) getActivity()).overlayView, R.anim.fade_out);
         ECAnimationUtils.animateHideView(getContext(), R.anim
-                .translate_slide_out_top_fragment, toolbar, toolbarExp);
+                .translate_slide_out_top_fragment, header);
+        ECAnimationUtils.animateHideView(getContext(), R.anim
+                .translate_slide_out_bottom, doneButton);
         ECAnimationUtils.animateHideView(getContext(), contentView, R.anim
                 .translate_slide_out_bottom, new Action0() {
             @Override
